@@ -3,36 +3,506 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>wuhaoyang.github.io</title>
+    <meta
+      name="description"
+      content="Portfolio and curriculum vitae of Wu Haoyang, an Electronic Engineering student at HKUST."
+    />
+    <title>Wu Haoyang | Electronic Engineering</title>
+    <script>
+      if (localStorage.getItem("theme") === "dark") {
+        document.documentElement.setAttribute("data-theme", "dark");
+      }
+    </script>
     <style>
       :root {
-        color-scheme: light dark;
+        --ink: #17233c;
+        --muted: #667085;
+        --accent: #1d5fd1;
+        --accent-dark: #17489d;
+        --line: #dce4f0;
+        --paper: #ffffff;
+        --wash: #f4f7fb;
+        color-scheme: light;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
       }
+
+      :root[data-theme="dark"] {
+        --ink: #e6edf7;
+        --muted: #94a3b8;
+        --accent: #6ea8ff;
+        --accent-dark: #8fb9ff;
+        --line: #2a3a55;
+        --paper: #151e2e;
+        --wash: #0c1322;
+        color-scheme: dark;
+      }
+
+      :root[data-theme="dark"] body {
+        background:
+          radial-gradient(circle at top left, #1b2c4d 0, transparent 34rem),
+          var(--wash);
+      }
+
+      :root[data-theme="dark"] .page {
+        box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 45%);
+      }
+
+      :root[data-theme="dark"] .hero {
+        background: linear-gradient(125deg, #0c1830, #1d4fa8);
+      }
+
+      :root[data-theme="dark"] .entry p:last-child,
+      :root[data-theme="dark"] .skill-group p {
+        color: #a8b5c9;
+      }
+
+      :root[data-theme="dark"] .tag-list li {
+        color: #eaf2ff;
+        background: #26417a;
+        border: 1px solid rgb(110 168 255 / 35%);
+      }
+
+      .theme-toggle {
+        position: fixed;
+        top: 1.1rem;
+        right: 1.1rem;
+        z-index: 100;
+        display: grid;
+        width: 2.75rem;
+        height: 2.75rem;
+        padding: 0;
+        place-items: center;
+        border: 1px solid var(--line);
+        border-radius: 50%;
+        color: var(--ink);
+        background: var(--paper);
+        box-shadow: 0 0.5rem 1.5rem rgb(29 52 91 / 18%);
+        cursor: pointer;
+        transition: transform 0.15s ease, background 0.25s ease, color 0.25s ease;
+      }
+
+      .theme-toggle:hover {
+        transform: translateY(-2px);
+      }
+
+      .theme-toggle svg {
+        width: 1.15rem;
+        height: 1.15rem;
+      }
+
+      .theme-toggle .icon-sun {
+        display: none;
+      }
+
+      :root[data-theme="dark"] .theme-toggle .icon-sun {
+        display: block;
+      }
+
+      :root[data-theme="dark"] .theme-toggle .icon-moon {
+        display: none;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
       body {
         margin: 0;
-        min-height: 100vh;
-        display: grid;
-        place-items: center;
-        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at top left, #dceaff 0, transparent 34rem),
+          var(--wash);
+        line-height: 1.6;
       }
-      main {
-        max-width: 680px;
-        padding: 2rem;
+
+      a {
+        color: inherit;
+      }
+
+      .page {
+        width: min(1120px, calc(100% - 2rem));
+        margin: 3rem auto;
+        background: var(--paper);
+        box-shadow: 0 1.5rem 4rem rgb(29 52 91 / 12%);
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 2rem;
+        align-items: end;
+        padding: 3.5rem 4rem 2.75rem;
+        color: #fff;
+        background: linear-gradient(125deg, #16294e, #1d5fd1);
+      }
+
+      .eyebrow {
+        margin: 0 0 0.5rem;
+        color: #bcd4ff;
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin-top: 0;
+      }
+
+      h1 {
+        margin-bottom: 0.4rem;
+        font-size: clamp(2.5rem, 7vw, 5rem);
+        letter-spacing: -0.06em;
+        line-height: 0.98;
+      }
+
+      .subtitle {
+        max-width: 38rem;
+        margin-bottom: 0;
+        color: #e5edff;
+        font-size: 1.1rem;
+      }
+
+      .hero-mark {
+        display: grid;
+        width: 7rem;
+        height: 7rem;
+        place-items: center;
+        border: 1px solid rgb(255 255 255 / 35%);
+        border-radius: 50%;
+        color: #fff;
+        font-size: 2rem;
+        font-weight: 700;
+        letter-spacing: -0.08em;
+        background: rgb(255 255 255 / 10%);
+      }
+
+      .content {
+        display: grid;
+        grid-template-columns: minmax(0, 1.65fr) minmax(15rem, 0.85fr);
+        gap: 3.5rem;
+        padding: 3rem 4rem 4rem;
+      }
+
+      section + section {
+        margin-top: 2.75rem;
+      }
+
+      .section-title {
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+        margin-bottom: 1.5rem;
+        color: var(--accent-dark);
+        font-size: 0.82rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      .section-title::after {
+        height: 1px;
+        flex: 1;
+        content: "";
+        background: var(--line);
+      }
+
+      .entry {
+        position: relative;
+        padding: 0 0 1.8rem 1.5rem;
+        border-left: 2px solid var(--line);
+      }
+
+      .entry:last-child {
+        padding-bottom: 0;
+      }
+
+      .entry::before {
+        position: absolute;
+        top: 0.35rem;
+        left: -0.4rem;
+        width: 0.65rem;
+        height: 0.65rem;
+        border: 2px solid var(--accent);
+        border-radius: 50%;
+        content: "";
+        background: var(--paper);
+      }
+
+      .entry h3 {
+        margin-bottom: 0.15rem;
+        font-size: 1.12rem;
+      }
+
+      .role {
+        margin-bottom: 0.25rem;
+        color: var(--accent);
+        font-weight: 700;
+      }
+
+      .date {
+        margin-bottom: 0.65rem;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .entry p:last-child {
+        margin-bottom: 0;
+        color: #455269;
+      }
+
+      .side {
+        padding-left: 2rem;
+        border-left: 1px solid var(--line);
+      }
+
+      .fact {
+        margin-bottom: 1.3rem;
+      }
+
+      .fact-label {
+        margin-bottom: 0.2rem;
+        color: var(--muted);
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      .fact p {
+        margin-bottom: 0;
+        font-weight: 600;
+      }
+
+      .skill-group + .skill-group {
+        margin-top: 1.25rem;
+      }
+
+      .skill-group h3 {
+        margin-bottom: 0.35rem;
+        font-size: 0.95rem;
+      }
+
+      .skill-group p {
+        margin-bottom: 0;
+        color: #455269;
+      }
+
+      .tag-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        padding: 0;
+        margin: 0;
+        list-style: none;
+      }
+
+      .tag-list li {
+        padding: 0.3rem 0.7rem;
+        border: 1px solid transparent;
+        border-radius: 999px;
+        color: var(--accent-dark);
+        font-size: 0.82rem;
+        background: #eaf1ff;
+      }
+
+      footer {
+        padding: 1.25rem 4rem;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 0.82rem;
         text-align: center;
       }
-      h1 {
-        margin: 0 0 0.5rem;
-      }
-      p {
-        margin: 0;
-        line-height: 1.5;
+
+      @media (max-width: 760px) {
+        .page {
+          width: 100%;
+          margin: 0;
+        }
+
+        .hero,
+        .content {
+          padding-right: 1.5rem;
+          padding-left: 1.5rem;
+        }
+
+        .hero {
+          grid-template-columns: 1fr;
+          padding-top: 2.5rem;
+        }
+
+        .hero-mark {
+          width: 5rem;
+          height: 5rem;
+        }
+
+        .content {
+          grid-template-columns: 1fr;
+          gap: 2.5rem;
+        }
+
+        .side {
+          padding-top: 2.5rem;
+          padding-left: 0;
+          border-top: 1px solid var(--line);
+          border-left: 0;
+        }
+
+        footer {
+          padding-right: 1.5rem;
+          padding-left: 1.5rem;
+        }
       }
     </style>
   </head>
   <body>
-    <main>
-      <h1>Hello from GitHub Pages 👋</h1>
-      <p>This site is served from the <code>wuhaoyang.github.io</code> repository.</p>
+    <button
+      class="theme-toggle"
+      id="themeToggle"
+      aria-label="Toggle night mode"
+      title="Toggle night mode"
+    >
+      <svg
+        class="icon-moon"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+      </svg>
+      <svg
+        class="icon-sun"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <circle cx="12" cy="12" r="4"></circle>
+        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path>
+      </svg>
+    </button>
+    <main class="page">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">Electronic Engineering · HKUST</p>
+          <h2>Wu Haoyang</h2>
+        </div>
+      </header>
+
+      <div class="content">
+        <div>
+          <section aria-labelledby="education-title">
+            <h2 class="section-title" id="education-title">Education</h2>
+            <article class="entry">
+              <h3>The Hong Kong University of Science and Technology</h3>
+              <p class="role">BEng in Electronic Engineering</p>
+              <p class="date">September 2024 – Present</p>
+              <p>
+                Developing a foundation in electronic engineering through academic
+                study and hands-on technical projects.
+              </p>
+            </article>
+            <article class="entry">
+              <h3>Wuhan Britain-China International School (WHBC)</h3>
+              <p class="date">September 2019 – June 2024</p>
+            </article>
+          </section>
+
+          <section aria-labelledby="experience-title">
+            <h2 class="section-title" id="experience-title">Intern Experience</h2>
+            <article class="entry">
+              <h3>Wuhan Chuke Information Technology Co., Ltd.</h3>
+              <p class="role">Hardware Engineering Intern</p>
+              <p class="date">June 2026 – August 2026</p>
+              <p>
+                Developed multiple prototypes of a 4G RTK positioning device and
+                collaborated closely with the R&amp;D team to iterate and optimize
+                its design, bridging academic theory and industrial practice.
+              </p>
+            </article>
+            <article class="entry">
+              <h3>Wuhan Fushian IoT Technology Co., Ltd.</h3>
+              <p class="role">AI Algorithm Trainee</p>
+              <p class="date">June 2025 – July 2025</p>
+              <p>
+                Built fundamental knowledge of AI training and IoT security product
+                development while strengthening teamwork and communication skills.
+              </p>
+            </article>
+          </section>
+
+          <section aria-labelledby="activity-title">
+            <h2 class="section-title" id="activity-title">Activity</h2>
+            <article class="entry">
+              <h3>Wuchang Railway Station</h3>
+              <p class="role">Service Center Volunteer</p>
+              <p class="date">July 14 – July 18, 2025</p>
+              <p>
+                Assisted passengers by answering inquiries and providing support
+                at the Service Center, gaining familiarity with station operations
+                and improving communication skills.
+              </p>
+            </article>
+          </section>
+        </div>
+
+        <aside class="side">
+          <section aria-labelledby="profile-title">
+            <h2 class="section-title" id="profile-title">Profile</h2>
+            <div class="fact">
+              <p class="fact-label">Focus</p>
+              <p>Hardware engineering, IoT, embedded systems</p>
+            </div>
+            <div class="fact">
+              <p class="fact-label">Location</p>
+              <p>Hong Kong</p>
+            </div>
+          </section>
+
+          <section aria-labelledby="skills-title">
+            <h2 class="section-title" id="skills-title">Skills</h2>
+            <div class="skill-group">
+              <h3>Languages</h3>
+              <p>English — fluent<br />TOEFL iBT: 104<br />Chinese — native speaker</p>
+            </div>
+            <div class="skill-group">
+              <h3>Productive Software</h3>
+              <ul class="tag-list">
+                <li>MS Office</li>
+                <li>Python</li>
+                <li>C++</li>
+                <li>Kicad</li>
+                <li>Photoshop</li>
+                <li>Premiere Pro</li>
+                <li>Lightroom</li>
+              </ul>
+            </div>
+          </section>
+        </aside>
+      </div>
+
+      <footer>© 2026 Wu Haoyang</footer>
     </main>
+
+    <script>
+      const root = document.documentElement;
+      const toggle = document.getElementById("themeToggle");
+
+      toggle.addEventListener("click", () => {
+        const isDark = root.getAttribute("data-theme") === "dark";
+        root.setAttribute("data-theme", isDark ? "light" : "dark");
+        localStorage.setItem("theme", isDark ? "light" : "dark");
+      });
+    </script>
   </body>
 </html>
