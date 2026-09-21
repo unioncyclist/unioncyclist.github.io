@@ -101,6 +101,12 @@
         line-height: 1.45;
       }
 
+      .intro-actions {
+        display: flex;
+        flex: 0 0 auto;
+        gap: 0.55rem;
+      }
+
       .intro p {
         margin: 0;
       }
@@ -261,7 +267,7 @@
           display: block;
         }
 
-        .intro .button {
+        .intro-actions {
           margin-top: 0.8rem;
         }
       }
@@ -285,11 +291,13 @@
 
       <div class="intro">
         <p>合并数字，得到 <strong>2048</strong>！达到 2048 后仍可继续挑战更高分。</p>
-        <button class="button" id="new-game" type="button">新游戏</button>
+        <div class="intro-actions">
+          <button class="button" id="new-game" type="button">新游戏</button>
+          <button class="button undo-button" id="undo" type="button" disabled>上一步</button>
+        </div>
       </div>
 
       <div class="controls">
-        <button class="undo-button" id="undo" type="button" disabled>撤销上一步</button>
         <button class="help-button" id="help" type="button">玩法说明</button>
       </div>
 
@@ -307,7 +315,7 @@
         </div>
       </section>
 
-      <p class="status" id="status" aria-live="polite">使用方向键或 WASD 移动方块，也可以在棋盘上滑动。</p>
+      <p class="status" id="status" aria-live="polite">使用方向键、WASD 或滑动移动；按 U 可撤销上一步。</p>
     </main>
 
     <script>
@@ -485,7 +493,7 @@
           hideModal();
           addRandomTile(state.board);
           addRandomTile(state.board);
-          updateStatus("使用方向键或 WASD 移动方块，也可以在棋盘上滑动。");
+          updateStatus("使用方向键、WASD 或滑动移动；按 U 可撤销上一步。");
           render();
         };
 
@@ -517,6 +525,11 @@
         };
 
         document.addEventListener("keydown", (event) => {
+          if (event.key.toLowerCase() === "u") {
+            event.preventDefault();
+            undo();
+            return;
+          }
           const direction = keyDirections[event.key];
           if (!direction || state.gameOver) return;
           event.preventDefault();
@@ -549,7 +562,7 @@
         });
         undoButton.addEventListener("click", undo);
         document.querySelector("#help").addEventListener("click", () => {
-          updateStatus("相同数字碰撞后会合并；每次移动后会出现一个新的 2 或 4。");
+          updateStatus("方向键/WASD/滑动移动；相同数字会合并；按 U 或点击“上一步”可连续撤销。");
         });
 
         newGame();
