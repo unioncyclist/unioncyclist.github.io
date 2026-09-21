@@ -179,17 +179,47 @@
       }
 
       .board {
+        --board-gap: clamp(0.45rem, 2vw, 0.8rem);
+        --board-pad: clamp(0.45rem, 2vw, 0.8rem);
+        position: relative;
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        gap: clamp(0.45rem, 2vw, 0.8rem);
-        padding: clamp(0.45rem, 2vw, 0.8rem);
+        gap: var(--board-gap);
+        padding: var(--board-pad);
         border-radius: 0.5rem;
         background: var(--board);
         touch-action: none;
       }
 
+      .cell-layer,
+      .tile-layer {
+        display: grid;
+        position: absolute;
+        inset: var(--board-pad);
+        grid-template-columns: repeat(4, 1fr);
+        gap: var(--board-gap);
+      }
+
+      .cell-layer {
+        position: relative;
+        inset: auto;
+        grid-column: 1 / -1;
+        grid-row: 1 / -1;
+      }
+
+      .cell {
+        aspect-ratio: 1;
+        border-radius: 0.25rem;
+        background: var(--empty);
+      }
+
+      .tile-layer {
+        pointer-events: none;
+      }
+
       .tile {
         display: grid;
+        position: relative;
         aspect-ratio: 1;
         place-items: center;
         border-radius: 0.25rem;
@@ -206,13 +236,13 @@
       }
 
       .tile.move {
-        --move-x: 0;
-        --move-y: 0;
-        animation: tile-move 0.16s ease-in-out;
+        z-index: 2;
+        transition: transform 0.1s ease-in-out;
       }
 
       .tile.merge {
-        animation: tile-move-merge 0.22s ease-out;
+        z-index: 3;
+        animation: tile-pop 0.2s ease-in-out 0.1s both;
       }
 
       @keyframes tile-spawn {
@@ -239,40 +269,25 @@
         }
       }
 
-      @keyframes tile-move {
-        from {
-          transform: translate(
-            calc(var(--move-x) * (100% + clamp(0.45rem, 2vw, 0.8rem))),
-            calc(var(--move-y) * (100% + clamp(0.45rem, 2vw, 0.8rem)))
-          );
-        }
-        to {
-          transform: translate(0, 0);
-        }
+      @keyframes tile-pop {
+      0% {
+        transform: scale(0);
       }
-
-      @keyframes tile-move-merge {
-        0% {
-          transform: translate(
-              calc(var(--move-x) * (100% + clamp(0.45rem, 2vw, 0.8rem))),
-              calc(var(--move-y) * (100% + clamp(0.45rem, 2vw, 0.8rem)))
-            )
-            scale(0.8);
-        }
-        65% {
-          transform: translate(0, 0) scale(1.14);
-        }
-        100% {
-          transform: translate(0, 0) scale(1);
-        }
+      50% {
+        transform: scale(1.2);
+      }
+      100% {
+        transform: scale(1);
       }
 
       @media (prefers-reduced-motion: reduce) {
         .score-pop,
         .tile.spawn,
-        .tile.move,
         .tile.merge {
           animation: none;
+        }
+        .tile.move {
+          transition: none;
         }
       }
 
@@ -397,7 +412,10 @@
       </div>
 
       <section class="board-wrap" aria-label="2048 游戏棋盘">
-        <div class="board" id="board" role="grid" aria-label="4乘4棋盘"></div>
+        <div class="board" id="board" role="grid" aria-label="4乘4棋盘">
+          <div class="cell-layer" aria-hidden="true"></div>
+          <div class="tile-layer" id="tile-layer"></div>
+        </div>
         <div class="modal" id="modal" hidden>
           <div class="modal-card">
             <h2 id="modal-title">你赢了！</h2>
@@ -419,6 +437,7 @@
         const TARGET = 2048;
         const BEST_SCORE_KEY = "unioncyclist-2048-best";
         const boardElement = document.querySelector("#board");
+        const tileLayerElement = document.querySelector("#tile-layer");
         const scoreElement = document.querySelector("#score");
         const bestScoreElement = document.querySelector("#best-score");
         const undoButton = document.querySelector("#undo");
@@ -471,8 +490,30 @@
           statusElement.textContent = message;
         };
 
+        const createTile = (value, classes, position) => {
+          const tile = document.createElement("div");
+          tile.className = ["tile", classes].filter(Boolean).join(" ");
+          tile.style.gridRow = position[0] + 1;
+          tile.style.gridColumn = position[1] + 1;
+          tile.dataset.value = value > 2048 ? "super" : String(value);
+          tile.textContent = value || "";
+          tile.setAttribute("role", "gridcell");
+          tile.setAttribute("aria-label", value ? `${value}` : "空");
+          return tile;
+        };
+
+        const renderCells = () => {
+          const cellLayer = boardElement.querySelector(".cell-layer");
+          cellLayer.replaceChildren();
+          for (let index = 0; index < SIZE * SIZE; index += 1) {
+            const cell = document.createElement("div");
+            cell.className = "cell";
+            cellLayer.append(cell);
+          }
+        };
+
         const render = () => {
-          boardElement.replaceChildren();
+          tileLayerElement.replaceChildren();
           if (state.animation?.scoreGain) {
             const addition = document.createElement("span");
             addition.className = "score-pop";
@@ -480,23 +521,37 @@
             scoreElement.parentElement.append(addition);
             window.setTimeout(() => addition.remove(), 650);
           }
-          state.board.flat().forEach((value, index) => {
-            const tile = document.createElement("div");
-            const isSpawn = state.animation?.spawn === index;
-            const animation = state.animation?.tiles[index];
-            const isMerge = animation?.merge;
-            tile.className = `tile${isSpawn ? " spawn" : ""}${animation ? " move" : ""}${isMerge ? " merge" : ""}`;
-            if (animation) {
-              tile.style.setProperty("--move-x", animation.from[1] - animation.to[1]);
-              tile.style.setProperty("--move-y", animation.from[0] - animation.to[0]);
-            }
-            tile.setAttribute("role", "gridcell");
-            tile.dataset.value = value > 2048 ? "super" : String(value);
-            tile.textContent = value || "";
-            tile.setAttribute("aria-label", value ? `${value}` : "空");
-            boardElement.append(tile);
+          const animation = state.animation;
+          if (animation?.actors) {
+            animation.actors.forEach((actor) => {
+              const tile = createTile(
+                actor.value,
+                [actor.move && "move", actor.merge && "merge", actor.spawn && "spawn"]
+                  .filter(Boolean)
+                  .join(" "),
+                actor.to
+              );
+              if (actor.move) {
+                tile.style.transform = `translate(${actor.from[1] - actor.to[1]}00%, ${actor.from[0] - actor.to[0]}00%)`;
+                window.requestAnimationFrame(() => {
+                  tile.style.transform = "translate(0, 0)";
+                });
+              }
+              tileLayerElement.append(tile);
+            });
+          } else {
+            state.board.forEach((row, rowIndex) => row.forEach((value, columnIndex) => {
+              if (value) tileLayerElement.append(createTile(value, "", [rowIndex, columnIndex]));
+            }));
           });
-          state.animation = null;
+          if (animation?.actors) {
+            window.setTimeout(() => {
+              if (state.animation === animation) {
+                state.animation = null;
+                render();
+              }
+            }, 260);
+          }
           scoreElement.textContent = state.score;
           bestScoreElement.textContent = state.bestScore;
           undoButton.disabled = state.history.length === 0;
@@ -511,7 +566,7 @@
               const merged = compact[index].value * 2;
               result.push({
                 value: merged,
-                from: compact[index].index,
+                sources: [compact[index], compact[index + 1]],
                 merge: true,
               });
               gained += merged;
@@ -519,7 +574,7 @@
             } else {
               result.push({
                 value: compact[index].value,
-                from: compact[index].index,
+                sources: [compact[index]],
                 merge: false,
               });
             }
@@ -535,7 +590,7 @@
         const move = (direction) => {
           const before = JSON.stringify(state.board);
           const next = emptyBoard();
-          const tiles = {};
+          const actors = [];
           let gained = 0;
           for (let index = 0; index < SIZE; index += 1) {
             let source;
@@ -553,14 +608,19 @@
               next[index] = result.row;
               result.items.forEach((tile, column) => {
                 if (!tile) return;
-                const from = tile.from;
-                if (from !== column || tile.merge) {
-                  tiles[index * SIZE + column] = {
-                    from: [index, from],
-                    to: [index, column],
-                    merge: tile.merge,
-                  };
-                }
+                const to = [index, column];
+                tile.sources.forEach((source) => actors.push({
+                  value: source.value,
+                  from: [index, source.index],
+                  to,
+                  move: true,
+                }));
+                if (tile.merge) actors.push({
+                  value: tile.value,
+                  from: to,
+                  to,
+                  merge: true,
+                });
               });
               gained += result.gained;
             } else {
@@ -579,14 +639,19 @@
               });
               result.items.forEach((tile, row) => {
                 if (!tile) return;
-                const from = tile.from;
-                if (from !== row || tile.merge) {
-                  tiles[row * SIZE + index] = {
-                    from: [from, index],
-                    to: [row, index],
-                    merge: tile.merge,
-                  };
-                }
+                const to = [row, index];
+                tile.sources.forEach((source) => actors.push({
+                  value: source.value,
+                  from: [source.index, index],
+                  to,
+                  move: true,
+                }));
+                if (tile.merge) actors.push({
+                  value: tile.value,
+                  from: to,
+                  to,
+                  merge: true,
+                });
               });
               gained += result.gained;
             }
@@ -602,9 +667,16 @@
           state.score += gained;
           saveBestScore();
           const spawn = addRandomTile(state.board);
+          if (spawn) {
+            actors.push({
+              value: state.board[spawn[0]][spawn[1]],
+              from: spawn,
+              to: spawn,
+              spawn: true,
+            });
+          }
           state.animation = {
-            spawn: spawn ? spawn[0] * SIZE + spawn[1] : null,
-            tiles,
+            actors,
             scoreGain: gained,
           };
           if (!state.won && state.board.flat().includes(TARGET)) showWinModal();
@@ -659,6 +731,7 @@
           addRandomTile(state.board);
           addRandomTile(state.board);
           updateStatus("使用方向键、WASD 或滑动移动；按 U 可撤销上一步。");
+          renderCells();
           render();
         };
 
