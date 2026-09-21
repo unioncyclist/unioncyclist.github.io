@@ -327,7 +327,7 @@
           board: [],
           score: 0,
           bestScore: Number(localStorage.getItem(BEST_SCORE_KEY)) || 0,
-          previous: null,
+          history: [],
           won: false,
           gameOver: false,
         };
@@ -379,7 +379,7 @@
           });
           scoreElement.textContent = state.score;
           bestScoreElement.textContent = state.bestScore;
-          undoButton.disabled = !state.previous;
+          undoButton.disabled = state.history.length === 0;
         };
 
         const slideRow = (row) => {
@@ -425,7 +425,12 @@
             }
           }
           if (JSON.stringify(next) === before) return false;
-          state.previous = { board: cloneBoard(state.board), score: state.score };
+          state.history.push({
+            board: cloneBoard(state.board),
+            score: state.score,
+            won: state.won,
+            gameOver: state.gameOver,
+          });
           state.board = next;
           state.score += gained;
           saveBestScore();
@@ -474,7 +479,7 @@
         const newGame = () => {
           state.board = emptyBoard();
           state.score = 0;
-          state.previous = null;
+          state.history = [];
           state.won = false;
           state.gameOver = false;
           hideModal();
@@ -485,13 +490,18 @@
         };
 
         const undo = () => {
-          if (!state.previous) return;
-          state.board = state.previous.board;
-          state.score = state.previous.score;
-          state.previous = null;
-          state.gameOver = false;
+          if (state.history.length === 0) return;
+          const previous = state.history.pop();
+          state.board = previous.board;
+          state.score = previous.score;
+          state.won = previous.won;
+          state.gameOver = previous.gameOver;
           hideModal();
-          updateStatus("已撤销上一步。");
+          updateStatus(
+            state.history.length > 0
+              ? `已撤销一步，还可以继续撤销 ${state.history.length} 步。`
+              : "已撤销到最初状态。"
+          );
           render();
         };
 
