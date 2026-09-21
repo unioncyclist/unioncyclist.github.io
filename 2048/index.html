@@ -1,0 +1,549 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="一个支持撤销操作的 2048 网页小游戏。"
+    />
+    <title>2048 - Union Cyclist</title>
+    <style>
+      :root {
+        --page: #faf8ef;
+        --ink: #776e65;
+        --muted: #9a9188;
+        --board: #bbada0;
+        --empty: rgb(238 228 218 / 35%);
+        --accent: #8f7a66;
+        --light: #f9f6f2;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        min-height: 100vh;
+        margin: 0;
+        color: var(--ink);
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        background:
+          radial-gradient(circle at top, #fffdf7 0, transparent 28rem),
+          var(--page);
+      }
+
+      button {
+        border: 0;
+        font: inherit;
+        cursor: pointer;
+      }
+
+      .game {
+        width: min(100% - 2rem, 31rem);
+        margin: 0 auto;
+        padding: 2rem 0 3rem;
+      }
+
+      .topbar,
+      .intro,
+      .controls,
+      .score-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+      }
+
+      h1 {
+        margin: 0;
+        color: #776e65;
+        font-size: clamp(3.4rem, 18vw, 5.2rem);
+        line-height: 0.9;
+        letter-spacing: -0.08em;
+      }
+
+      .score-row {
+        align-items: stretch;
+      }
+
+      .score {
+        min-width: 6.2rem;
+        padding: 0.45rem 0.85rem;
+        border-radius: 0.25rem;
+        color: #eee4da;
+        text-align: center;
+        background: #bbada0;
+      }
+
+      .score-label {
+        display: block;
+        color: #eee4da;
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .score-value {
+        display: block;
+        color: #fff;
+        font-size: 1.35rem;
+        font-weight: 800;
+        line-height: 1.2;
+      }
+
+      .intro {
+        align-items: flex-start;
+        margin: 1rem 0;
+        font-size: 0.98rem;
+        line-height: 1.45;
+      }
+
+      .intro p {
+        margin: 0;
+      }
+
+      .intro strong {
+        color: #5f554c;
+      }
+
+      .button {
+        flex: 0 0 auto;
+        padding: 0.7rem 1rem;
+        border-radius: 0.25rem;
+        color: #f9f6f2;
+        font-weight: 700;
+        background: var(--accent);
+        transition: transform 0.15s ease, background 0.15s ease;
+      }
+
+      .button:hover,
+      .button:focus-visible {
+        background: #7b6856;
+        transform: translateY(-1px);
+      }
+
+      .button:focus-visible,
+      .help-button:focus-visible {
+        outline: 3px solid #4c9ffe;
+        outline-offset: 3px;
+      }
+
+      .controls {
+        justify-content: flex-start;
+        margin-bottom: 0.8rem;
+      }
+
+      .undo-button {
+        color: #776e65;
+        background: transparent;
+        text-decoration: underline;
+        text-underline-offset: 0.2em;
+      }
+
+      .undo-button:disabled {
+        color: #c7bdb3;
+        cursor: not-allowed;
+      }
+
+      .board-wrap {
+        position: relative;
+      }
+
+      .board {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: clamp(0.45rem, 2vw, 0.8rem);
+        padding: clamp(0.45rem, 2vw, 0.8rem);
+        border-radius: 0.5rem;
+        background: var(--board);
+        touch-action: none;
+      }
+
+      .tile {
+        display: grid;
+        aspect-ratio: 1;
+        place-items: center;
+        border-radius: 0.25rem;
+        color: var(--ink);
+        font-size: clamp(1.6rem, 10vw, 3.25rem);
+        font-weight: 800;
+        line-height: 1;
+        background: var(--empty);
+        user-select: none;
+      }
+
+      .tile[data-value="2"] { background: #eee4da; }
+      .tile[data-value="4"] { background: #ede0c8; }
+      .tile[data-value="8"] { color: #f9f6f2; background: #f2b179; }
+      .tile[data-value="16"] { color: #f9f6f2; background: #f59563; }
+      .tile[data-value="32"] { color: #f9f6f2; background: #f67c5f; }
+      .tile[data-value="64"] { color: #f9f6f2; background: #f65e3b; }
+      .tile[data-value="128"] { color: #f9f6f2; background: #edcf72; }
+      .tile[data-value="256"] { color: #f9f6f2; background: #edcc61; }
+      .tile[data-value="512"] { color: #f9f6f2; background: #edc850; }
+      .tile[data-value="1024"] { color: #f9f6f2; background: #edc53f; }
+      .tile[data-value="2048"] { color: #f9f6f2; background: #edc22e; }
+      .tile[data-value="super"] { color: #f9f6f2; background: #3c3a32; }
+
+      .status {
+        min-height: 2rem;
+        margin: 1rem 0 0;
+        color: var(--muted);
+        text-align: center;
+      }
+
+      .status strong {
+        color: var(--accent);
+      }
+
+      .help-button {
+        padding: 0;
+        color: var(--muted);
+        background: transparent;
+        text-decoration: underline;
+        text-underline-offset: 0.2em;
+      }
+
+      .modal {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        padding: 1.5rem;
+        border-radius: 0.5rem;
+        background: rgb(250 248 239 / 88%);
+      }
+
+      .modal[hidden] {
+        display: none;
+      }
+
+      .modal-card {
+        max-width: 22rem;
+        padding: 1.8rem;
+        border-radius: 0.5rem;
+        text-align: center;
+        background: #fff;
+        box-shadow: 0 0.8rem 2rem rgb(119 110 101 / 18%);
+      }
+
+      .modal-card h2 {
+        margin: 0 0 0.5rem;
+        color: #776e65;
+        font-size: 2rem;
+      }
+
+      .modal-card p {
+        margin: 0 0 1.2rem;
+      }
+
+      .modal-actions {
+        display: flex;
+        justify-content: center;
+        gap: 0.7rem;
+        flex-wrap: wrap;
+      }
+
+      .secondary-button {
+        color: var(--accent);
+        background: #eee4da;
+      }
+
+      @media (max-width: 420px) {
+        .game {
+          padding-top: 1rem;
+        }
+
+        .intro {
+          display: block;
+        }
+
+        .intro .button {
+          margin-top: 0.8rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="game">
+      <header class="topbar">
+        <h1>2048</h1>
+        <div class="score-row" aria-label="游戏分数">
+          <div class="score">
+            <span class="score-label">分数</span>
+            <span class="score-value" id="score">0</span>
+          </div>
+          <div class="score">
+            <span class="score-label">最高分</span>
+            <span class="score-value" id="best-score">0</span>
+          </div>
+        </div>
+      </header>
+
+      <div class="intro">
+        <p>合并数字，得到 <strong>2048</strong>！达到 2048 后仍可继续挑战更高分。</p>
+        <button class="button" id="new-game" type="button">新游戏</button>
+      </div>
+
+      <div class="controls">
+        <button class="undo-button" id="undo" type="button" disabled>撤销上一步</button>
+        <button class="help-button" id="help" type="button">玩法说明</button>
+      </div>
+
+      <section class="board-wrap" aria-label="2048 游戏棋盘">
+        <div class="board" id="board" role="grid" aria-label="4乘4棋盘"></div>
+        <div class="modal" id="modal" hidden>
+          <div class="modal-card">
+            <h2 id="modal-title">你赢了！</h2>
+            <p id="modal-message">成功合成 2048。要继续挑战更高分吗？</p>
+            <div class="modal-actions">
+              <button class="button" id="continue-game" type="button">继续游戏</button>
+              <button class="button secondary-button" id="restart-game" type="button">重新开始</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <p class="status" id="status" aria-live="polite">使用方向键或 WASD 移动方块，也可以在棋盘上滑动。</p>
+    </main>
+
+    <script>
+      (() => {
+        const SIZE = 4;
+        const TARGET = 2048;
+        const BEST_SCORE_KEY = "unioncyclist-2048-best";
+        const boardElement = document.querySelector("#board");
+        const scoreElement = document.querySelector("#score");
+        const bestScoreElement = document.querySelector("#best-score");
+        const undoButton = document.querySelector("#undo");
+        const modal = document.querySelector("#modal");
+        const modalTitle = document.querySelector("#modal-title");
+        const modalMessage = document.querySelector("#modal-message");
+        const statusElement = document.querySelector("#status");
+        const state = {
+          board: [],
+          score: 0,
+          bestScore: Number(localStorage.getItem(BEST_SCORE_KEY)) || 0,
+          previous: null,
+          won: false,
+          gameOver: false,
+        };
+
+        const emptyBoard = () =>
+          Array.from({ length: SIZE }, () => Array(SIZE).fill(0));
+
+        const cloneBoard = (board) => board.map((row) => [...row]);
+
+        const randomEmptyCell = (board) => {
+          const cells = [];
+          board.forEach((row, rowIndex) => {
+            row.forEach((value, columnIndex) => {
+              if (!value) cells.push([rowIndex, columnIndex]);
+            });
+          });
+          return cells[Math.floor(Math.random() * cells.length)];
+        };
+
+        const addRandomTile = (board) => {
+          const cell = randomEmptyCell(board);
+          if (cell) {
+            const [row, column] = cell;
+            board[row][column] = Math.random() < 0.9 ? 2 : 4;
+          }
+        };
+
+        const saveBestScore = () => {
+          if (state.score > state.bestScore) {
+            state.bestScore = state.score;
+            localStorage.setItem(BEST_SCORE_KEY, String(state.bestScore));
+          }
+        };
+
+        const updateStatus = (message) => {
+          statusElement.textContent = message;
+        };
+
+        const render = () => {
+          boardElement.replaceChildren();
+          state.board.flat().forEach((value, index) => {
+            const tile = document.createElement("div");
+            tile.className = "tile";
+            tile.setAttribute("role", "gridcell");
+            tile.dataset.value = value > 2048 ? "super" : String(value);
+            tile.textContent = value || "";
+            tile.setAttribute("aria-label", value ? `${value}` : "空");
+            boardElement.append(tile);
+          });
+          scoreElement.textContent = state.score;
+          bestScoreElement.textContent = state.bestScore;
+          undoButton.disabled = !state.previous;
+        };
+
+        const slideRow = (row) => {
+          const compact = row.filter(Boolean);
+          const result = [];
+          let gained = 0;
+          for (let index = 0; index < compact.length; index += 1) {
+            if (compact[index] === compact[index + 1]) {
+              const merged = compact[index] * 2;
+              result.push(merged);
+              gained += merged;
+              index += 1;
+            } else {
+              result.push(compact[index]);
+            }
+          }
+          while (result.length < SIZE) result.push(0);
+          return { row: result, gained };
+        };
+
+        const move = (direction) => {
+          const before = JSON.stringify(state.board);
+          const next = emptyBoard();
+          let gained = 0;
+          for (let index = 0; index < SIZE; index += 1) {
+            let source;
+            if (direction === "left" || direction === "right") {
+              source = [...state.board[index]];
+              if (direction === "right") source.reverse();
+              const result = slideRow(source);
+              if (direction === "right") result.row.reverse();
+              next[index] = result.row;
+              gained += result.gained;
+            } else {
+              source = state.board.map((row) => row[index]);
+              if (direction === "down") source.reverse();
+              const result = slideRow(source);
+              if (direction === "down") result.row.reverse();
+              result.row.forEach((value, rowIndex) => {
+                next[rowIndex][index] = value;
+              });
+              gained += result.gained;
+            }
+          }
+          if (JSON.stringify(next) === before) return false;
+          state.previous = { board: cloneBoard(state.board), score: state.score };
+          state.board = next;
+          state.score += gained;
+          saveBestScore();
+          addRandomTile(state.board);
+          if (!state.won && state.board.flat().includes(TARGET)) showWinModal();
+          if (!hasMoves(state.board)) {
+            state.gameOver = true;
+            showGameOverModal();
+          }
+          render();
+          return true;
+        };
+
+        const hasMoves = (board) => {
+          if (board.flat().some((value) => value === 0)) return true;
+          for (let row = 0; row < SIZE; row += 1) {
+            for (let column = 0; column < SIZE; column += 1) {
+              if (
+                board[row][column] === board[row + 1]?.[column] ||
+                board[row][column] === board[row][column + 1]
+              ) return true;
+            }
+          }
+          return false;
+        };
+
+        const hideModal = () => {
+          modal.hidden = true;
+        };
+
+        const showWinModal = () => {
+          state.won = true;
+          modalTitle.textContent = "你赢了！";
+          modalMessage.textContent = "成功合成 2048。继续游戏，挑战更高分吧！";
+          document.querySelector("#continue-game").hidden = false;
+          modal.hidden = false;
+        };
+
+        const showGameOverModal = () => {
+          modalTitle.textContent = "游戏结束";
+          modalMessage.textContent = "棋盘已没有可移动的方块，再来一局吧。";
+          document.querySelector("#continue-game").hidden = true;
+          modal.hidden = false;
+        };
+
+        const newGame = () => {
+          state.board = emptyBoard();
+          state.score = 0;
+          state.previous = null;
+          state.won = false;
+          state.gameOver = false;
+          hideModal();
+          addRandomTile(state.board);
+          addRandomTile(state.board);
+          updateStatus("使用方向键或 WASD 移动方块，也可以在棋盘上滑动。");
+          render();
+        };
+
+        const undo = () => {
+          if (!state.previous) return;
+          state.board = state.previous.board;
+          state.score = state.previous.score;
+          state.previous = null;
+          state.gameOver = false;
+          hideModal();
+          updateStatus("已撤销上一步。");
+          render();
+        };
+
+        const keyDirections = {
+          ArrowLeft: "left",
+          ArrowRight: "right",
+          ArrowUp: "up",
+          ArrowDown: "down",
+          a: "left",
+          d: "right",
+          w: "up",
+          s: "down",
+        };
+
+        document.addEventListener("keydown", (event) => {
+          const direction = keyDirections[event.key];
+          if (!direction || state.gameOver) return;
+          event.preventDefault();
+          move(direction);
+        });
+
+        let touchStart = null;
+        boardElement.addEventListener("touchstart", (event) => {
+          const [touch] = event.changedTouches;
+          touchStart = { x: touch.clientX, y: touch.clientY };
+        }, { passive: true });
+        boardElement.addEventListener("touchend", (event) => {
+          if (!touchStart || state.gameOver) return;
+          const [touch] = event.changedTouches;
+          const deltaX = touch.clientX - touchStart.x;
+          const deltaY = touch.clientY - touchStart.y;
+          touchStart = null;
+          if (Math.max(Math.abs(deltaX), Math.abs(deltaY)) < 24) return;
+          const direction = Math.abs(deltaX) > Math.abs(deltaY)
+            ? (deltaX > 0 ? "right" : "left")
+            : (deltaY > 0 ? "down" : "up");
+          move(direction);
+        }, { passive: true });
+
+        document.querySelector("#new-game").addEventListener("click", newGame);
+        document.querySelector("#restart-game").addEventListener("click", newGame);
+        document.querySelector("#continue-game").addEventListener("click", () => {
+          hideModal();
+          updateStatus("继续挑战更高分！");
+        });
+        undoButton.addEventListener("click", undo);
+        document.querySelector("#help").addEventListener("click", () => {
+          updateStatus("相同数字碰撞后会合并；每次移动后会出现一个新的 2 或 4。");
+        });
+
+        newGame();
+      })();
+    </script>
+  </body>
+</html>
