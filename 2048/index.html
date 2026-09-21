@@ -178,6 +178,45 @@
         user-select: none;
       }
 
+      .tile.spawn {
+        animation: tile-spawn 0.18s ease-out;
+      }
+
+      .tile.merge {
+        animation: tile-merge 0.22s ease-out;
+      }
+
+      @keyframes tile-spawn {
+        0% {
+          opacity: 0;
+          transform: scale(0);
+        }
+        75% {
+          transform: scale(1.12);
+        }
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+
+      @keyframes tile-merge {
+        0%,
+        100% {
+          transform: scale(1);
+        }
+        45% {
+          transform: scale(1.14);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .tile.spawn,
+        .tile.merge {
+          animation: none;
+        }
+      }
+
       .tile[data-value="2"] { background: #eee4da; }
       .tile[data-value="4"] { background: #ede0c8; }
       .tile[data-value="8"] { color: #f9f6f2; background: #f2b179; }
@@ -333,6 +372,7 @@
           score: 0,
           bestScore: Number(localStorage.getItem(BEST_SCORE_KEY)) || 0,
           history: [],
+          animation: null,
           won: false,
           gameOver: false,
         };
@@ -358,6 +398,7 @@
             const [row, column] = cell;
             board[row][column] = Math.random() < 0.9 ? 2 : 4;
           }
+          return cell;
         };
 
         const saveBestScore = () => {
@@ -375,13 +416,18 @@
           boardElement.replaceChildren();
           state.board.flat().forEach((value, index) => {
             const tile = document.createElement("div");
-            tile.className = "tile";
+            const isSpawn = state.animation?.spawn === index;
+            const isMerge = state.animation?.merges.some(
+              ([row, column]) => row * SIZE + column === index
+            );
+            tile.className = `tile${isSpawn ? " spawn" : ""}${isMerge ? " merge" : ""}`;
             tile.setAttribute("role", "gridcell");
             tile.dataset.value = value > 2048 ? "super" : String(value);
             tile.textContent = value || "";
             tile.setAttribute("aria-label", value ? `${value}` : "空");
             boardElement.append(tile);
           });
+          state.animation = null;
           scoreElement.textContent = state.score;
           bestScoreElement.textContent = state.bestScore;
           undoButton.disabled = state.history.length === 0;
@@ -390,10 +436,12 @@
         const slideRow = (row) => {
           const compact = row.filter(Boolean);
           const result = [];
+          const merges = [];
           let gained = 0;
           for (let index = 0; index < compact.length; index += 1) {
             if (compact[index] === compact[index + 1]) {
               const merged = compact[index] * 2;
+              merges.push(result.length);
               result.push(merged);
               gained += merged;
               index += 1;
@@ -402,12 +450,13 @@
             }
           }
           while (result.length < SIZE) result.push(0);
-          return { row: result, gained };
+          return { row: result, gained, merges };
         };
 
         const move = (direction) => {
           const before = JSON.stringify(state.board);
           const next = emptyBoard();
+          const merges = [];
           let gained = 0;
           for (let index = 0; index < SIZE; index += 1) {
             let source;
@@ -415,17 +464,25 @@
               source = [...state.board[index]];
               if (direction === "right") source.reverse();
               const result = slideRow(source);
-              if (direction === "right") result.row.reverse();
+              if (direction === "right") {
+                result.row.reverse();
+                result.merges = result.merges.map((column) => SIZE - 1 - column);
+              }
               next[index] = result.row;
+              result.merges.forEach((column) => merges.push([index, column]));
               gained += result.gained;
             } else {
               source = state.board.map((row) => row[index]);
               if (direction === "down") source.reverse();
               const result = slideRow(source);
-              if (direction === "down") result.row.reverse();
+              if (direction === "down") {
+                result.row.reverse();
+                result.merges = result.merges.map((row) => SIZE - 1 - row);
+              }
               result.row.forEach((value, rowIndex) => {
                 next[rowIndex][index] = value;
               });
+              result.merges.forEach((row) => merges.push([row, index]));
               gained += result.gained;
             }
           }
@@ -439,7 +496,11 @@
           state.board = next;
           state.score += gained;
           saveBestScore();
-          addRandomTile(state.board);
+          const spawn = addRandomTile(state.board);
+          state.animation = {
+            spawn: spawn ? spawn[0] * SIZE + spawn[1] : null,
+            merges,
+          };
           if (!state.won && state.board.flat().includes(TARGET)) showWinModal();
           if (!hasMoves(state.board)) {
             state.gameOver = true;
@@ -485,6 +546,7 @@
           state.board = emptyBoard();
           state.score = 0;
           state.history = [];
+          state.animation = null;
           state.won = false;
           state.gameOver = false;
           hideModal();
@@ -501,6 +563,7 @@
           state.score = previous.score;
           state.won = previous.won;
           state.gameOver = previous.gameOver;
+          state.animation = null;
           hideModal();
           updateStatus(
             state.history.length > 0
