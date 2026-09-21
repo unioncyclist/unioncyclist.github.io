@@ -125,10 +125,15 @@
         transition: transform 0.15s ease, background 0.15s ease;
       }
 
-      .button:hover,
-      .button:focus-visible {
+      .button:not(:disabled):hover,
+      .button:not(:disabled):focus-visible {
         background: #7b6856;
         transform: translateY(-1px);
+      }
+
+      .button:disabled {
+        cursor: not-allowed;
+        opacity: 0.55;
       }
 
       .button:focus-visible,
@@ -143,15 +148,7 @@
       }
 
       .undo-button {
-        color: #776e65;
-        background: transparent;
-        text-decoration: underline;
-        text-underline-offset: 0.2em;
-      }
-
-      .undo-button:disabled {
-        color: #c7bdb3;
-        cursor: not-allowed;
+        min-width: 5.4rem;
       }
 
       .board-wrap {
