@@ -69,6 +69,7 @@
       }
 
       .score {
+        position: relative;
         min-width: 6.2rem;
         padding: 0.45rem 0.85rem;
         border-radius: 0.25rem;
@@ -92,6 +93,28 @@
         font-size: 1.35rem;
         font-weight: 800;
         line-height: 1.2;
+      }
+
+      .score-pop {
+        position: absolute;
+        top: 0.1rem;
+        right: 0.7rem;
+        color: rgb(119 110 101 / 90%);
+        font-size: 1rem;
+        font-weight: 800;
+        pointer-events: none;
+        animation: score-pop 0.6s ease-in forwards;
+      }
+
+      @keyframes score-pop {
+        from {
+          opacity: 1;
+          transform: translateY(0);
+        }
+        to {
+          opacity: 0;
+          transform: translateY(-2rem);
+        }
       }
 
       .intro {
@@ -182,8 +205,14 @@
         animation: tile-spawn 0.18s ease-out;
       }
 
+      .tile.move {
+        --move-x: 0;
+        --move-y: 0;
+        animation: tile-move 0.16s ease-in-out;
+      }
+
       .tile.merge {
-        animation: tile-merge 0.22s ease-out;
+        animation: tile-move-merge 0.22s ease-out;
       }
 
       @keyframes tile-spawn {
@@ -210,8 +239,38 @@
         }
       }
 
+      @keyframes tile-move {
+        from {
+          transform: translate(
+            calc(var(--move-x) * (100% + clamp(0.45rem, 2vw, 0.8rem))),
+            calc(var(--move-y) * (100% + clamp(0.45rem, 2vw, 0.8rem)))
+          );
+        }
+        to {
+          transform: translate(0, 0);
+        }
+      }
+
+      @keyframes tile-move-merge {
+        0% {
+          transform: translate(
+              calc(var(--move-x) * (100% + clamp(0.45rem, 2vw, 0.8rem))),
+              calc(var(--move-y) * (100% + clamp(0.45rem, 2vw, 0.8rem)))
+            )
+            scale(0.8);
+        }
+        65% {
+          transform: translate(0, 0) scale(1.14);
+        }
+        100% {
+          transform: translate(0, 0) scale(1);
+        }
+      }
+
       @media (prefers-reduced-motion: reduce) {
+        .score-pop,
         .tile.spawn,
+        .tile.move,
         .tile.merge {
           animation: none;
         }
@@ -414,13 +473,23 @@
 
         const render = () => {
           boardElement.replaceChildren();
+          if (state.animation?.scoreGain) {
+            const addition = document.createElement("span");
+            addition.className = "score-pop";
+            addition.textContent = `+${state.animation.scoreGain}`;
+            scoreElement.parentElement.append(addition);
+            window.setTimeout(() => addition.remove(), 650);
+          }
           state.board.flat().forEach((value, index) => {
             const tile = document.createElement("div");
             const isSpawn = state.animation?.spawn === index;
-            const isMerge = state.animation?.merges.some(
-              ([row, column]) => row * SIZE + column === index
-            );
-            tile.className = `tile${isSpawn ? " spawn" : ""}${isMerge ? " merge" : ""}`;
+            const animation = state.animation?.tiles[index];
+            const isMerge = animation?.merge;
+            tile.className = `tile${isSpawn ? " spawn" : ""}${animation ? " move" : ""}${isMerge ? " merge" : ""}`;
+            if (animation) {
+              tile.style.setProperty("--move-x", animation.from[1] - animation.to[1]);
+              tile.style.setProperty("--move-y", animation.from[0] - animation.to[0]);
+            }
             tile.setAttribute("role", "gridcell");
             tile.dataset.value = value > 2048 ? "super" : String(value);
             tile.textContent = value || "";
@@ -434,55 +503,91 @@
         };
 
         const slideRow = (row) => {
-          const compact = row.filter(Boolean);
+          const compact = row.filter((tile) => tile.value);
           const result = [];
-          const merges = [];
           let gained = 0;
           for (let index = 0; index < compact.length; index += 1) {
-            if (compact[index] === compact[index + 1]) {
-              const merged = compact[index] * 2;
-              merges.push(result.length);
-              result.push(merged);
+            if (compact[index].value === compact[index + 1]?.value) {
+              const merged = compact[index].value * 2;
+              result.push({
+                value: merged,
+                from: compact[index].index,
+                merge: true,
+              });
               gained += merged;
               index += 1;
             } else {
-              result.push(compact[index]);
+              result.push({
+                value: compact[index].value,
+                from: compact[index].index,
+                merge: false,
+              });
             }
           }
-          while (result.length < SIZE) result.push(0);
-          return { row: result, gained, merges };
+          while (result.length < SIZE) result.push(null);
+          return {
+            row: result.map((tile) => tile?.value || 0),
+            items: result,
+            gained,
+          };
         };
 
         const move = (direction) => {
           const before = JSON.stringify(state.board);
           const next = emptyBoard();
-          const merges = [];
+          const tiles = {};
           let gained = 0;
           for (let index = 0; index < SIZE; index += 1) {
             let source;
             if (direction === "left" || direction === "right") {
-              source = [...state.board[index]];
+              source = state.board[index].map((value, column) => ({
+                value,
+                index: column,
+              }));
               if (direction === "right") source.reverse();
               const result = slideRow(source);
               if (direction === "right") {
                 result.row.reverse();
-                result.merges = result.merges.map((column) => SIZE - 1 - column);
+                result.items.reverse();
               }
               next[index] = result.row;
-              result.merges.forEach((column) => merges.push([index, column]));
+              result.items.forEach((tile, column) => {
+                if (!tile) return;
+                const from = tile.from;
+                if (from !== column || tile.merge) {
+                  tiles[index * SIZE + column] = {
+                    from: [index, from],
+                    to: [index, column],
+                    merge: tile.merge,
+                  };
+                }
+              });
               gained += result.gained;
             } else {
-              source = state.board.map((row) => row[index]);
+              source = state.board.map((row, rowIndex) => ({
+                value: row[index],
+                index: rowIndex,
+              }));
               if (direction === "down") source.reverse();
               const result = slideRow(source);
               if (direction === "down") {
                 result.row.reverse();
-                result.merges = result.merges.map((row) => SIZE - 1 - row);
+                result.items.reverse();
               }
               result.row.forEach((value, rowIndex) => {
                 next[rowIndex][index] = value;
               });
-              result.merges.forEach((row) => merges.push([row, index]));
+              result.items.forEach((tile, row) => {
+                if (!tile) return;
+                const from = tile.from;
+                if (from !== row || tile.merge) {
+                  tiles[row * SIZE + index] = {
+                    from: [from, index],
+                    to: [row, index],
+                    merge: tile.merge,
+                  };
+                }
+              });
               gained += result.gained;
             }
           }
@@ -499,7 +604,8 @@
           const spawn = addRandomTile(state.board);
           state.animation = {
             spawn: spawn ? spawn[0] * SIZE + spawn[1] : null,
-            merges,
+            tiles,
+            scoreGain: gained,
           };
           if (!state.won && state.board.flat().includes(TARGET)) showWinModal();
           if (!hasMoves(state.board)) {
