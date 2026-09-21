@@ -69,7 +69,6 @@
       }
 
       .score {
-        position: relative;
         min-width: 6.2rem;
         padding: 0.45rem 0.85rem;
         border-radius: 0.25rem;
@@ -93,28 +92,6 @@
         font-size: 1.35rem;
         font-weight: 800;
         line-height: 1.2;
-      }
-
-      .score-pop {
-        position: absolute;
-        top: 0.1rem;
-        right: 0.7rem;
-        color: rgb(119 110 101 / 90%);
-        font-size: 1rem;
-        font-weight: 800;
-        pointer-events: none;
-        animation: score-pop 0.6s ease-in forwards;
-      }
-
-      @keyframes score-pop {
-        from {
-          opacity: 1;
-          transform: translateY(0);
-        }
-        to {
-          opacity: 0;
-          transform: translateY(-2rem);
-        }
       }
 
       .intro {
@@ -179,47 +156,17 @@
       }
 
       .board {
-        --board-gap: clamp(0.45rem, 2vw, 0.8rem);
-        --board-pad: clamp(0.45rem, 2vw, 0.8rem);
-        position: relative;
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        gap: var(--board-gap);
-        padding: var(--board-pad);
+        gap: clamp(0.45rem, 2vw, 0.8rem);
+        padding: clamp(0.45rem, 2vw, 0.8rem);
         border-radius: 0.5rem;
         background: var(--board);
         touch-action: none;
       }
 
-      .cell-layer,
-      .tile-layer {
-        display: grid;
-        position: absolute;
-        inset: var(--board-pad);
-        grid-template-columns: repeat(4, 1fr);
-        gap: var(--board-gap);
-      }
-
-      .cell-layer {
-        position: relative;
-        inset: auto;
-        grid-column: 1 / -1;
-        grid-row: 1 / -1;
-      }
-
-      .cell {
-        aspect-ratio: 1;
-        border-radius: 0.25rem;
-        background: var(--empty);
-      }
-
-      .tile-layer {
-        pointer-events: none;
-      }
-
       .tile {
         display: grid;
-        position: relative;
         aspect-ratio: 1;
         place-items: center;
         border-radius: 0.25rem;
@@ -229,66 +176,6 @@
         line-height: 1;
         background: var(--empty);
         user-select: none;
-      }
-
-      .tile.spawn {
-        animation: tile-spawn 0.18s ease-out;
-      }
-
-      .tile.move {
-        z-index: 2;
-        transition: transform 0.1s ease-in-out;
-      }
-
-      .tile.merge {
-        z-index: 3;
-        animation: tile-pop 0.2s ease-in-out 0.1s both;
-      }
-
-      @keyframes tile-spawn {
-        0% {
-          opacity: 0;
-          transform: scale(0);
-        }
-        75% {
-          transform: scale(1.12);
-        }
-        100% {
-          opacity: 1;
-          transform: scale(1);
-        }
-      }
-
-      @keyframes tile-merge {
-        0%,
-        100% {
-          transform: scale(1);
-        }
-        45% {
-          transform: scale(1.14);
-        }
-      }
-
-      @keyframes tile-pop {
-      0% {
-        transform: scale(0);
-      }
-      50% {
-        transform: scale(1.2);
-      }
-      100% {
-        transform: scale(1);
-      }
-
-      @media (prefers-reduced-motion: reduce) {
-        .score-pop,
-        .tile.spawn,
-        .tile.merge {
-          animation: none;
-        }
-        .tile.move {
-          transition: none;
-        }
       }
 
       .tile[data-value="2"] { background: #eee4da; }
@@ -412,10 +299,7 @@
       </div>
 
       <section class="board-wrap" aria-label="2048 游戏棋盘">
-        <div class="board" id="board" role="grid" aria-label="4乘4棋盘">
-          <div class="cell-layer" aria-hidden="true"></div>
-          <div class="tile-layer" id="tile-layer"></div>
-        </div>
+        <div class="board" id="board" role="grid" aria-label="4乘4棋盘"></div>
         <div class="modal" id="modal" hidden>
           <div class="modal-card">
             <h2 id="modal-title">你赢了！</h2>
@@ -437,7 +321,6 @@
         const TARGET = 2048;
         const BEST_SCORE_KEY = "unioncyclist-2048-best";
         const boardElement = document.querySelector("#board");
-        const tileLayerElement = document.querySelector("#tile-layer");
         const scoreElement = document.querySelector("#score");
         const bestScoreElement = document.querySelector("#best-score");
         const undoButton = document.querySelector("#undo");
@@ -450,7 +333,6 @@
           score: 0,
           bestScore: Number(localStorage.getItem(BEST_SCORE_KEY)) || 0,
           history: [],
-          animation: null,
           won: false,
           gameOver: false,
         };
@@ -476,7 +358,6 @@
             const [row, column] = cell;
             board[row][column] = Math.random() < 0.9 ? 2 : 4;
           }
-          return cell;
         };
 
         const saveBestScore = () => {
@@ -490,168 +371,60 @@
           statusElement.textContent = message;
         };
 
-        const createTile = (value, classes, position) => {
-          const tile = document.createElement("div");
-          tile.className = ["tile", classes].filter(Boolean).join(" ");
-          tile.style.gridRow = position[0] + 1;
-          tile.style.gridColumn = position[1] + 1;
-          tile.dataset.value = value > 2048 ? "super" : String(value);
-          tile.textContent = value || "";
-          tile.setAttribute("role", "gridcell");
-          tile.setAttribute("aria-label", value ? `${value}` : "空");
-          return tile;
-        };
-
-        const renderCells = () => {
-          const cellLayer = boardElement.querySelector(".cell-layer");
-          cellLayer.replaceChildren();
-          for (let index = 0; index < SIZE * SIZE; index += 1) {
-            const cell = document.createElement("div");
-            cell.className = "cell";
-            cellLayer.append(cell);
-          }
-        };
-
         const render = () => {
-          tileLayerElement.replaceChildren();
-          if (state.animation?.scoreGain) {
-            const addition = document.createElement("span");
-            addition.className = "score-pop";
-            addition.textContent = `+${state.animation.scoreGain}`;
-            scoreElement.parentElement.append(addition);
-            window.setTimeout(() => addition.remove(), 650);
-          }
-          const animation = state.animation;
-          if (animation?.actors) {
-            animation.actors.forEach((actor) => {
-              const tile = createTile(
-                actor.value,
-                [actor.move && "move", actor.merge && "merge", actor.spawn && "spawn"]
-                  .filter(Boolean)
-                  .join(" "),
-                actor.to
-              );
-              if (actor.move) {
-                tile.style.transform = `translate(${actor.from[1] - actor.to[1]}00%, ${actor.from[0] - actor.to[0]}00%)`;
-                window.requestAnimationFrame(() => {
-                  tile.style.transform = "translate(0, 0)";
-                });
-              }
-              tileLayerElement.append(tile);
-            });
-          } else {
-            state.board.forEach((row, rowIndex) => row.forEach((value, columnIndex) => {
-              if (value) tileLayerElement.append(createTile(value, "", [rowIndex, columnIndex]));
-            }));
+          boardElement.replaceChildren();
+          state.board.flat().forEach((value, index) => {
+            const tile = document.createElement("div");
+            tile.className = "tile";
+            tile.setAttribute("role", "gridcell");
+            tile.dataset.value = value > 2048 ? "super" : String(value);
+            tile.textContent = value || "";
+            tile.setAttribute("aria-label", value ? `${value}` : "空");
+            boardElement.append(tile);
           });
-          if (animation?.actors) {
-            window.setTimeout(() => {
-              if (state.animation === animation) {
-                state.animation = null;
-                render();
-              }
-            }, 260);
-          }
           scoreElement.textContent = state.score;
           bestScoreElement.textContent = state.bestScore;
           undoButton.disabled = state.history.length === 0;
         };
 
         const slideRow = (row) => {
-          const compact = row.filter((tile) => tile.value);
+          const compact = row.filter(Boolean);
           const result = [];
           let gained = 0;
           for (let index = 0; index < compact.length; index += 1) {
-            if (compact[index].value === compact[index + 1]?.value) {
-              const merged = compact[index].value * 2;
-              result.push({
-                value: merged,
-                sources: [compact[index], compact[index + 1]],
-                merge: true,
-              });
+            if (compact[index] === compact[index + 1]) {
+              const merged = compact[index] * 2;
+              result.push(merged);
               gained += merged;
               index += 1;
             } else {
-              result.push({
-                value: compact[index].value,
-                sources: [compact[index]],
-                merge: false,
-              });
+              result.push(compact[index]);
             }
           }
-          while (result.length < SIZE) result.push(null);
-          return {
-            row: result.map((tile) => tile?.value || 0),
-            items: result,
-            gained,
-          };
+          while (result.length < SIZE) result.push(0);
+          return { row: result, gained };
         };
 
         const move = (direction) => {
           const before = JSON.stringify(state.board);
           const next = emptyBoard();
-          const actors = [];
           let gained = 0;
           for (let index = 0; index < SIZE; index += 1) {
             let source;
             if (direction === "left" || direction === "right") {
-              source = state.board[index].map((value, column) => ({
-                value,
-                index: column,
-              }));
+              source = [...state.board[index]];
               if (direction === "right") source.reverse();
               const result = slideRow(source);
-              if (direction === "right") {
-                result.row.reverse();
-                result.items.reverse();
-              }
+              if (direction === "right") result.row.reverse();
               next[index] = result.row;
-              result.items.forEach((tile, column) => {
-                if (!tile) return;
-                const to = [index, column];
-                tile.sources.forEach((source) => actors.push({
-                  value: source.value,
-                  from: [index, source.index],
-                  to,
-                  move: true,
-                }));
-                if (tile.merge) actors.push({
-                  value: tile.value,
-                  from: to,
-                  to,
-                  merge: true,
-                });
-              });
               gained += result.gained;
             } else {
-              source = state.board.map((row, rowIndex) => ({
-                value: row[index],
-                index: rowIndex,
-              }));
+              source = state.board.map((row) => row[index]);
               if (direction === "down") source.reverse();
               const result = slideRow(source);
-              if (direction === "down") {
-                result.row.reverse();
-                result.items.reverse();
-              }
+              if (direction === "down") result.row.reverse();
               result.row.forEach((value, rowIndex) => {
                 next[rowIndex][index] = value;
-              });
-              result.items.forEach((tile, row) => {
-                if (!tile) return;
-                const to = [row, index];
-                tile.sources.forEach((source) => actors.push({
-                  value: source.value,
-                  from: [source.index, index],
-                  to,
-                  move: true,
-                }));
-                if (tile.merge) actors.push({
-                  value: tile.value,
-                  from: to,
-                  to,
-                  merge: true,
-                });
               });
               gained += result.gained;
             }
@@ -666,19 +439,7 @@
           state.board = next;
           state.score += gained;
           saveBestScore();
-          const spawn = addRandomTile(state.board);
-          if (spawn) {
-            actors.push({
-              value: state.board[spawn[0]][spawn[1]],
-              from: spawn,
-              to: spawn,
-              spawn: true,
-            });
-          }
-          state.animation = {
-            actors,
-            scoreGain: gained,
-          };
+          addRandomTile(state.board);
           if (!state.won && state.board.flat().includes(TARGET)) showWinModal();
           if (!hasMoves(state.board)) {
             state.gameOver = true;
@@ -724,14 +485,12 @@
           state.board = emptyBoard();
           state.score = 0;
           state.history = [];
-          state.animation = null;
           state.won = false;
           state.gameOver = false;
           hideModal();
           addRandomTile(state.board);
           addRandomTile(state.board);
           updateStatus("使用方向键、WASD 或滑动移动；按 U 可撤销上一步。");
-          renderCells();
           render();
         };
 
@@ -742,7 +501,6 @@
           state.score = previous.score;
           state.won = previous.won;
           state.gameOver = previous.gameOver;
-          state.animation = null;
           hideModal();
           updateStatus(
             state.history.length > 0
