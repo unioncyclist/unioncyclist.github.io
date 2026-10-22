@@ -63,6 +63,12 @@
         border: 1px solid rgb(110 168 255 / 35%);
       }
 
+      :root[data-theme="dark"] .chip {
+        color: #eaf2ff;
+        background: #26417a;
+        border-color: rgb(110 168 255 / 35%);
+      }
+
       .theme-toggle {
         position: fixed;
         top: 1.1rem;
@@ -186,6 +192,7 @@
         grid-template-columns: minmax(0, 1.65fr) minmax(15rem, 0.85fr);
         gap: 3.5rem;
         padding: 3rem 4rem 4rem;
+        align-items: start;
       }
 
       section + section {
@@ -237,6 +244,20 @@
         font-size: 1.12rem;
       }
 
+      .repo-link {
+        display: inline-block;
+        margin-left: 0.45rem;
+        font-size: 0.9em;
+        line-height: 1;
+        text-decoration: none;
+        transition: transform 0.15s ease;
+      }
+
+      .repo-link:hover,
+      .repo-link:focus-visible {
+        transform: translateY(-2px);
+      }
+
       .role {
         margin-bottom: 0.25rem;
         color: var(--accent);
@@ -254,9 +275,141 @@
         color: #455269;
       }
 
+      .fold-summary {
+        position: relative;
+        display: block;
+        padding-right: 3.2rem;
+        list-style: none;
+        cursor: pointer;
+      }
+
+      .fold-summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .fold-title {
+        display: block;
+        margin-bottom: 0.15rem;
+        font-size: 1.12rem;
+        font-weight: 700;
+        line-height: 1.35;
+      }
+
+      .fold-summary .role,
+      .fold-summary .date {
+        display: block;
+        margin-bottom: 0;
+      }
+
+      .fold-summary::after {
+        position: absolute;
+        top: -0.15rem;
+        right: 0;
+        display: grid;
+        width: 2.4rem;
+        height: 2.4rem;
+        place-items: center;
+        border: 1px solid var(--line);
+        border-radius: 50%;
+        content: "+";
+        color: var(--accent);
+        font-size: 1.45rem;
+        font-weight: 500;
+        line-height: 1;
+        background: var(--wash);
+        box-shadow: 0 0.35rem 1rem rgb(29 52 91 / 12%);
+        transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+      }
+
+      .fold-summary:hover::after,
+      .fold-summary:focus-visible::after {
+        border-color: var(--accent);
+        background: #eaf1ff;
+        transform: translateY(-1px);
+      }
+
+      :root[data-theme="dark"] .fold-summary:hover::after,
+      :root[data-theme="dark"] .fold-summary:focus-visible::after {
+        background: #26417a;
+      }
+
+      .entry-fold[open] > .fold-summary::after {
+        content: "\2212";
+      }
+
+      .fold-summary:hover .fold-title,
+      .fold-summary:focus-visible .fold-title {
+        color: var(--accent);
+      }
+
+      .fold-summary:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 0.35rem;
+        border-radius: 0.25rem;
+      }
+
+      .chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        margin-top: 0.65rem;
+      }
+
+      .chip {
+        padding: 0.2rem 0.6rem;
+        border: 1px solid transparent;
+        border-radius: 999px;
+        color: var(--accent-dark);
+        font-size: 0.75rem;
+        background: #eaf1ff;
+      }
+
+      .fold-body {
+        padding-top: 0.9rem;
+        animation: fold-in 0.22s ease;
+      }
+
+      .fold-body p {
+        color: #455269;
+      }
+
+      .fold-body .cn-name {
+        margin-bottom: 0.55rem;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .contact a {
+        color: var(--accent);
+        font-weight: 600;
+        text-decoration-color: rgb(29 95 209 / 40%);
+        text-underline-offset: 0.2em;
+      }
+
+      :root[data-theme="dark"] .contact a {
+        color: var(--accent);
+        text-decoration-color: rgb(110 168 255 / 45%);
+      }
+
+      @keyframes fold-in {
+        from {
+          opacity: 0;
+          transform: translateY(-0.25rem);
+        }
+
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+
       .side {
         padding-left: 2rem;
         border-left: 1px solid var(--line);
+      }
+
+      .side section + section {
+        margin-top: 2rem;
       }
 
       .fact {
@@ -315,6 +468,12 @@
         color: var(--muted);
         font-size: 0.82rem;
         text-align: center;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .fold-body {
+          animation: none;
+        }
       }
 
       @media (max-width: 760px) {
@@ -407,84 +566,143 @@
               <h3>The Hong Kong University of Science and Technology</h3>
               <p class="role">BEng in Electronic Engineering</p>
               <p class="date">September 2024 – Present</p>
-              <p>
-                Developing a foundation in electronic engineering through academic
-                study and hands-on technical projects.
-              </p>
-            </article>
-            <article class="entry">
-              <h3>Wuhan Britain-China International School (WHBC)</h3>
-              <p class="date">September 2019 – June 2024</p>
             </article>
           </section>
 
           <section aria-labelledby="experience-title">
             <h2 class="section-title" id="experience-title">Intern Experience</h2>
+            <details class="entry entry-fold">
+              <summary class="fold-summary">
+                <span class="fold-title">Wuhan Chuke Information Technology Co., Ltd.</span>
+                <span class="role">Hardware Engineering Intern</span>
+                <span class="date">Summer 2026</span>
+                <span class="chip-row">
+                  <span class="chip">PCB / EDA</span>
+                  <span class="chip">GNSS &amp; RTK</span>
+                  <span class="chip">Antenna</span>
+                  <span class="chip">Power &amp; battery</span>
+                  <span class="chip">SolidWorks</span>
+                  <span class="chip">3D printing</span>
+                  <span class="chip">Soldering</span>
+                  <span class="chip">Lua</span>
+                  <span class="chip">4G</span>
+                </span>
+              </summary>
+              <div class="fold-body">
+                <p class="cn-name">武汉楚科信息科技有限公司</p>
+                <p>
+                  I developed multiple hardware prototypes of a compact 4G RTK device to ensure the
+                  security of railway maintenance workers. I used AIR780E and GNSS chips, including
+                  TAU951 and K901M. I also tested various antenna solutions, such as ceramic and
+                  QHA, to optimize RTK accuracy. I used BQ and TPS series chips from TI to create a
+                  high-efficiency power supply and charging system. Using SolidWorks, I designed the
+                  device's case and collaborated with factories to mass-produce waterproof cases.
+                </p>
+              </div>
+            </details>
+            <details class="entry entry-fold">
+              <summary class="fold-summary">
+                <span class="fold-title">Wuhan Fushian IoT Technology Co., Ltd.</span>
+                <span class="role">AI Algorithm Trainee</span>
+                <span class="date">Summer 2025</span>
+                <span class="chip-row">
+                  <span class="chip">Data labeling</span>
+                  <span class="chip">Data collection</span>
+                  <span class="chip">Field testing</span>
+                </span>
+              </summary>
+              <div class="fold-body">
+                <p class="cn-name">武汉富视安物联网科技有限公司</p>
+                <p>
+                  I collaborated with the research and development team to improve the accuracy of
+                  their AI model for detecting humans, e-bikes and bicycles.
+                </p>
+              </div>
+            </details>
+          </section>
+
+          <section aria-labelledby="projects-title">
+            <h2 class="section-title" id="projects-title">Projects</h2>
             <article class="entry">
-              <h3>Wuhan Chuke Information Technology Co., Ltd.</h3>
-              <p class="role">Hardware Engineering Intern</p>
-              <p class="date">June 2026 – August 2026</p>
+              <h3>
+                WT_Rangefinder
+                <a class="repo-link" href="https://github.com/unioncyclist/WT_Rangefinder" target="_blank" rel="noopener" aria-label="WT_Rangefinder repository on GitHub" title="Open the WT_Rangefinder repository on GitHub">🔗</a>
+              </h3>
               <p>
-                Developed multiple prototypes of a 4G RTK positioning device and
-                collaborated closely with the R&amp;D team to iterate and optimize
-                its design, bridging academic theory and industrial practice.
+                Developed a lightweight Python tool based on OpenCV and NumPy to detect in-game
+                target markers and estimate distances. Implemented MSS screen capture and OBS
+                video-stream input support. Built a browser-based dashboard with Python HTTP
+                server.
               </p>
-            </article>
-            <article class="entry">
-              <h3>Wuhan Fushian IoT Technology Co., Ltd.</h3>
-              <p class="role">AI Algorithm Trainee</p>
-              <p class="date">June 2025 – July 2025</p>
-              <p>
-                Built fundamental knowledge of AI training and IoT security product
-                development while strengthening teamwork and communication skills.
-              </p>
+              <div class="chip-row">
+                <span class="chip">OpenCV</span>
+                <span class="chip">NumPy</span>
+                <span class="chip">MSS</span>
+                <span class="chip">OBS</span>
+                <span class="chip">Python HTTP server</span>
+              </div>
             </article>
           </section>
 
           <section aria-labelledby="activity-title">
             <h2 class="section-title" id="activity-title">Activity</h2>
-            <article class="entry">
-              <h3>Wuchang Railway Station</h3>
-              <p class="role">Service Center Volunteer</p>
-              <p class="date">July 14 – July 18, 2025</p>
-              <p>
-                Assisted passengers by answering inquiries and providing support
-                at the Service Center, gaining familiarity with station operations
-                and improving communication skills.
-              </p>
-            </article>
+            <details class="entry entry-fold">
+              <summary class="fold-summary">
+                <span class="fold-title">Wuchang Railway Station</span>
+                <span class="role">Service Center Volunteer</span>
+                <span class="date">Summer 2025</span>
+                <span class="chip-row">
+                  <span class="chip">Passenger enquiries</span>
+                  <span class="chip">Volunteer</span>
+                </span>
+              </summary>
+              <div class="fold-body">
+                <p class="cn-name">武昌火车站</p>
+                <p>
+                  I assisted passengers by answering inquiries and providing necessary support,
+                  such as guidance and wheelchairs, at the service center. I became familiar with
+                  railway station operations and improved my communication skills.
+                </p>
+              </div>
+            </details>
           </section>
+
         </div>
 
         <aside class="side">
-          <section aria-labelledby="profile-title">
-            <h2 class="section-title" id="profile-title">Profile</h2>
+          <section aria-labelledby="contact-title">
+            <h2 class="section-title" id="contact-title">Contact</h2>
             <div class="fact">
-              <p class="fact-label">Focus</p>
-              <p>Hardware engineering, IoT, embedded systems</p>
-            </div>
-            <div class="fact">
-              <p class="fact-label">Location</p>
-              <p>Hong Kong</p>
+              <p class="fact-label">Email</p>
+              <p class="contact"><a href="mailto:hwuct@connect.ust.hk">hwuct@connect.ust.hk</a></p>
             </div>
           </section>
 
           <section aria-labelledby="skills-title">
             <h2 class="section-title" id="skills-title">Skills</h2>
             <div class="skill-group">
-              <h3>Languages</h3>
-              <p>English — fluent<br />TOEFL iBT: 104<br />Chinese — native speaker</p>
+              <h3>Software</h3>
+              <ul class="tag-list">
+                <li>C++</li>
+                <li>Python</li>
+                <li>KiCad</li>
+                <li>EasyEDA</li>
+                <li>Arduino</li>
+                <li>STM32</li>
+                <li>SolidWorks</li>
+                <li>OpenCV</li>
+                <li>MATLAB</li>
+              </ul>
             </div>
             <div class="skill-group">
-              <h3>Productive Software</h3>
+              <h3>Hardware</h3>
               <ul class="tag-list">
-                <li>MS Office</li>
-                <li>Python</li>
-                <li>C++</li>
-                <li>Kicad</li>
-                <li>Photoshop</li>
-                <li>Premiere Pro</li>
-                <li>Lightroom</li>
+                <li>Schematic &amp; PCB design</li>
+                <li>3D printing</li>
+                <li>Soldering &amp; testing</li>
+                <li>GNSS &amp; 4G antenna</li>
+                <li>Hardware debugging</li>
+                <li>Battery &amp; power management</li>
               </ul>
             </div>
           </section>
